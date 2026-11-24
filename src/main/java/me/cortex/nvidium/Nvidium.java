@@ -22,7 +22,7 @@ public class Nvidium {
     public static NvidiumConfig config = NvidiumConfig.loadOrCreate();
 
     static {
-        ModContainer mod = (ModContainer) FabricLoader.getInstance().getModContainer("nvidium").orElseThrow(NullPointerException::new);
+        ModContainer mod = (ModContainer) FabricLoader.getInstance().getModContainer("vulkanium").orElseThrow(NullPointerException::new);
         var version = mod.getMetadata().getVersion().getFriendlyString();
         var commit = mod.getMetadata().getCustomValue("commit").getAsString();
         MOD_VERSION = version+"-"+commit;
