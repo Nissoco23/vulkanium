@@ -43,7 +43,7 @@ loom {
 }
 
 base {
-    archivesName = "nvidium"
+    archivesName = "vulkanium"
 }
 
 processResources {

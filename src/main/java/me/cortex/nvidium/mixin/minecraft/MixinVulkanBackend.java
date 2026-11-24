@@ -30,6 +30,10 @@ public class MixinVulkanBackend {
     )
     private static void nvidium$detectEnabledFeatures(FeatureSet enabled, VulkanPhysicalDevice physicalDevice, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<VkDevice> cir) {
         Nvidium.IS_COMPATIBLE = enabled.contains(MixinVulkanFeatureSets.NVIDIUM_MESH_SHADER);
+        if (Nvidium.IS_COMPATIBLE && !((me.cortex.nvidium.vk.IGraphicsQueueSparse) physicalDevice).nvidium$graphicsQueueSupportsSparse()) {
+            Nvidium.LOGGER.info("Graphics queue doesn't support sparse binding, disabling Nvidium");
+            Nvidium.IS_COMPATIBLE = false;
+        }
         Nvidium.IS_ENABLED = Nvidium.IS_COMPATIBLE;
         if (!Nvidium.IS_COMPATIBLE) {
             Nvidium.LOGGER.info("Mesh shader FeatureSet not enabled on this device, disabling Nvidium");

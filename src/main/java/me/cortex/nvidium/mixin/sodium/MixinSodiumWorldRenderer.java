@@ -49,13 +49,25 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
             ci.cancel();
 
             // CUTOUT IS WITH SOLID
+            if (pass != DefaultTerrainRenderPasses.SOLID && pass != DefaultTerrainRenderPasses.TRANSLUCENT) {
+                return;
+            }
+
+            // TODO 26.3 order independent transparency (Improved Transparency, stage != null) is not implemented on
+            //  the Vulkan path yet, translucent terrain is only drawn by the traditional blended pass.
+            if (stage != null) {
+                return;
+            }
+
+            // Minecraft 26.3 opens a render pass before calling us. Nvidium needs to run compute dispatches, barriers
+            // and its own render passes (occlusion depth buffer), none of which are allowed while a pass is open and
+            // a new pass can't be created before the current one is closed. Closing is idempotent
+            // (FrontendRenderPass.isClosed), so the caller closing it again afterwards is a no-op.
+            renderPass.close();
+
             if (pass == DefaultTerrainRenderPasses.SOLID) {
                 this.getRenderer().renderFrame(pass, viewport, fogParameters, matrices, x, y, z, terrainSampler);
-            } else if (pass == DefaultTerrainRenderPasses.TRANSLUCENT) {
-                // TODO 26.3 order independent transparency (stage != null) is not implemented on the Vulkan path yet,
-                //  translucent terrain is only drawn by the traditional blended pass.
-                if (stage != null)
-                    return;
+            } else {
                 this.getRenderer().renderTranslucent(pass, terrainSampler);
             }
         }

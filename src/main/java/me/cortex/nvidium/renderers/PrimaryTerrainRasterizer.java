@@ -13,6 +13,7 @@ import me.cortex.nvidium.vk.shader.VkPipelineLayout;
 import me.cortex.nvidium.vk.shader.VkShaderType;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ShaderDefines;
 import net.minecraft.resources.Identifier;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.KHRPushDescriptor;
@@ -30,6 +31,7 @@ public class PrimaryTerrainRasterizer extends Phase {
         shader = VkPipeline.make()
                 .addSource(VkShaderType.TASK, Identifier.fromNamespaceAndPath("nvidium", "terrain/task.glsl"))
                 .addSource(VkShaderType.MESH, Identifier.fromNamespaceAndPath("nvidium", "terrain/mesh.glsl"))
+                .nextSourceShaderDefines(ShaderDefines.builder().define("ALPHA_CUTOUT", 0.5f))
                 .addSource(VkShaderType.FRAGMENT, Identifier.fromNamespaceAndPath("nvidium", "terrain/frag.frag"))
                 .withLayout(layout)
                 .withColorTargetState(ColorTargetState.DEFAULT)

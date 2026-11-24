@@ -7,6 +7,10 @@ using `VK_EXT_mesh_shader`, so it works on any GPU with mesh shader support inst
 **Status:** work in progress. It builds on the Vulkan port in progress on the `26.2-vk` branch of
 [drouarb/nvidium](https://github.com/drouarb/nvidium) and is being brought up to Minecraft 26.3.
 
+Known gaps (see git history for details): "Improved Transparency" (26.3's order independent transparency) is not
+implemented on the Vulkan path yet, shader packs (Iris) are not supported, and nothing has been verified on real
+hardware yet.
+
 ## Credits
 
 This project exists because of other people's work and is a derivative of theirs:
