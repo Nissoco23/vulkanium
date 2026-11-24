@@ -10,7 +10,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#moj_import <nvidium:occlusion/scene.glsl>
+#import <nvidium:occlusion/scene.glsl>
 
 #define ADD_SIZE (0.1f)
 layout (local_size_x = 12) in;

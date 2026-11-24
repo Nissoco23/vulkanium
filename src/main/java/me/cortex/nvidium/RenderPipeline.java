@@ -1,17 +1,17 @@
 package me.cortex.nvidium;
 
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.GpuSampler;
-import com.mojang.blaze3d.vulkan.VulkanCommandEncoder;
+import com.mojang.renderpearl.api.textures.GpuSampler;
+import com.mojang.renderpearl.backend.vulkan.VulkanCommandEncoder;
 import it.unimi.dsi.fastutil.ints.*;
 import me.cortex.nvidium.config.StatisticsLoggingLevel;
 import me.cortex.nvidium.config.TranslucencySortingLevel;
 import me.cortex.nvidium.managers.RegionManager;
 import me.cortex.nvidium.managers.RegionVisibilityTracker;
 import me.cortex.nvidium.managers.SectionManager;
-import me.cortex.nvidium.mixin.minecraft.CommandEncoderAccessor;
+import me.cortex.nvidium.mixin.minecraft.FrontendCommandEncoderAccessor;
 import me.cortex.nvidium.mixin.minecraft.TextureAtlasAccessor;
 import me.cortex.nvidium.renderers.*;
 import me.cortex.nvidium.util.*;
@@ -463,7 +463,7 @@ public class RenderPipeline {
         TickableManager.TickAll();
 
         CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
-        VulkanCommandEncoder vkCommandEncoder = (VulkanCommandEncoder)((CommandEncoderAccessor)commandEncoder).nvidium$getCommandEncoderBackend();
+        VulkanCommandEncoder vkCommandEncoder = (VulkanCommandEncoder)((FrontendCommandEncoderAccessor)commandEncoder).nvidium$getBackend();
 
         try (RenderPass renderPass = commandEncoder.createRenderPass(
                         () -> "Nvidium Terrain",
@@ -545,7 +545,7 @@ public class RenderPipeline {
     // it hijacks the unassigned indirect command dispatch and uses that to dispatch the translucent chunks as well
     public void renderTranslucent(TerrainRenderPass pass, GpuSampler terrainSampler) {
         CommandEncoder commandEncoder = RenderSystem.getDevice().createCommandEncoder();
-        VulkanCommandEncoder vkCommandEncoder = (VulkanCommandEncoder)((CommandEncoderAccessor)commandEncoder).nvidium$getCommandEncoderBackend();
+        VulkanCommandEncoder vkCommandEncoder = (VulkanCommandEncoder)((FrontendCommandEncoderAccessor)commandEncoder).nvidium$getBackend();
 
         try (RenderPass renderPass = commandEncoder.createRenderPass(
                         () -> "Nvidium Translucent Terrain",

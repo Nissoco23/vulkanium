@@ -1,156 +1,57 @@
 package me.cortex.nvidium.mixin.minecraft;
 
-import com.mojang.blaze3d.vulkan.VulkanBackend;
-import com.mojang.blaze3d.vulkan.VulkanPhysicalDevice;
-import com.mojang.blaze3d.vulkan.init.VulkanFeature;
-import com.mojang.blaze3d.vulkan.init.VulkanPNextStruct;
+import com.mojang.renderpearl.backend.vulkan.VulkanBackend;
+import com.mojang.renderpearl.backend.vulkan.VulkanFeatureSets;
+import com.mojang.renderpearl.backend.vulkan.VulkanPhysicalDevice;
+import com.mojang.renderpearl.backend.vulkan.init.FeatureSet;
+import com.mojang.renderpearl.backend.vulkan.init.VulkanFeature;
+import com.mojang.renderpearl.backend.vulkan.init.VulkanPNextStruct;
 import me.cortex.nvidium.Nvidium;
-import org.lwjgl.system.MemoryStack;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.vulkan.*;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
-
-import java.util.Collection;
-import java.util.Set;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import static org.lwjgl.util.vma.Vma.VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-import static org.lwjgl.vulkan.EXTMeshShader.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
-import static org.lwjgl.vulkan.VK11.vkGetPhysicalDeviceProperties2;
 
-@Mixin(value = VulkanBackend.class)
+/**
+ * Nvidium integrates with Minecraft 26.3's FeatureSet based device creation: the mesh shader requirements are
+ * registered as an *optional* FeatureSet (see {@link MixinVulkanFeatureSets}), so GPUs without mesh shader support
+ * keep working as normal and simply run without Nvidium. Here we find out which of our sets were actually enabled.
+ */
+@Mixin(VulkanBackend.class)
 public class MixinVulkanBackend {
-    @Unique
-    private static final VulkanPNextStruct MESH_SHADER_FEATURES_STRUCT = new VulkanPNextStruct(
-            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
-            VkPhysicalDeviceMeshShaderFeaturesEXT.SIZEOF
-    );
-
-    @Unique
-    private static final VulkanPNextStruct REPRESENTATIVE_FRAGMENT_FEATURES_STRUCT = new VulkanPNextStruct(
-            NVRepresentativeFragmentTest.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_REPRESENTATIVE_FRAGMENT_TEST_FEATURES_NV,
-            VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV.SIZEOF
-    );
-
-    @Unique
-    private static final VulkanPNextStruct FRAGMENT_SHADER_BARYCENTRIC_FEATURES_STRUCT = new VulkanPNextStruct(
-            KHRFragmentShaderBarycentric.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR,
-            VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR.SIZEOF
-    );
-
-    @Unique
-    private static final Set<VulkanFeature> NVIDIUM_REQUIRED_FEATURES = Set.of(
-            new VulkanFeature(VulkanBackend.VK10_FEATURES_STRUCT, "shaderInt64", VkPhysicalDeviceFeatures.SHADERINT64),
-            new VulkanFeature(VulkanBackend.VK10_FEATURES_STRUCT, "shaderInt16", VkPhysicalDeviceFeatures.SHADERINT16),
-            new VulkanFeature(VulkanBackend.VK10_FEATURES_STRUCT, "sparseBinding", VkPhysicalDeviceFeatures.SPARSEBINDING),
-            new VulkanFeature(VulkanBackend.VK10_FEATURES_STRUCT, "sparseResidencyBuffer", VkPhysicalDeviceFeatures.SPARSERESIDENCYBUFFER),
-            new VulkanFeature(VulkanBackend.VK11_FEATURES_STRUCT, "storageBuffer16BitAccess", VkPhysicalDeviceVulkan11Features.STORAGEBUFFER16BITACCESS),
-            new VulkanFeature(VulkanBackend.VK11_FEATURES_STRUCT, "uniformAndStorageBuffer16BitAccess", VkPhysicalDeviceVulkan11Features.UNIFORMANDSTORAGEBUFFER16BITACCESS),
-            new VulkanFeature(VulkanBackend.VK12_FEATURES_STRUCT, "shaderInt8", VkPhysicalDeviceVulkan12Features.SHADERINT8),
-            new VulkanFeature(VulkanBackend.VK12_FEATURES_STRUCT, "storageBuffer8BitAccess", VkPhysicalDeviceVulkan12Features.STORAGEBUFFER8BITACCESS),
-            new VulkanFeature(VulkanBackend.VK12_FEATURES_STRUCT, "uniformAndStorageBuffer8BitAccess", VkPhysicalDeviceVulkan12Features.UNIFORMANDSTORAGEBUFFER8BITACCESS),
-            new VulkanFeature(VulkanBackend.VK12_FEATURES_STRUCT, "bufferDeviceAddress", VkPhysicalDeviceVulkan12Features.BUFFERDEVICEADDRESS),
-            new VulkanFeature(MESH_SHADER_FEATURES_STRUCT, "meshShader", VkPhysicalDeviceMeshShaderFeaturesEXT.MESHSHADER),
-            new VulkanFeature(MESH_SHADER_FEATURES_STRUCT, "taskShader", VkPhysicalDeviceMeshShaderFeaturesEXT.TASKSHADER)
-    );
-
-    @Unique
-    private static final VulkanFeature REPRESENTATIVE_FRAGMENT_TEST_FEATURE = new VulkanFeature(REPRESENTATIVE_FRAGMENT_FEATURES_STRUCT, "representativeFragmentTest", VkPhysicalDeviceRepresentativeFragmentTestFeaturesNV.REPRESENTATIVEFRAGMENTTEST);
-
-    @Unique
-    private static final VulkanFeature FRAGMENT_SHADER_BARYCENTRIC_FEATURE = new VulkanFeature(FRAGMENT_SHADER_BARYCENTRIC_FEATURES_STRUCT, "fragmentShaderBarycentric", VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR.FRAGMENTSHADERBARYCENTRIC);
-
     @Inject(
-            method = "createDevice(Ljava/util/Collection;Lcom/mojang/blaze3d/vulkan/VulkanPhysicalDevice;Ljava/util/Set;)Lorg/lwjgl/vulkan/VkDevice;",
-            at = @At(value = "HEAD")
+            method = "createDevice(Lcom/mojang/renderpearl/backend/vulkan/init/FeatureSet;Lcom/mojang/renderpearl/backend/vulkan/VulkanPhysicalDevice;)Lorg/lwjgl/vulkan/VkDevice;",
+            at = @At("HEAD")
     )
-    private static void nvidium$enableBDAFeature(Collection<String> deviceExtensions, VulkanPhysicalDevice physicalDevice, Set<VulkanFeature> vulkanFeatures, CallbackInfoReturnable<VkDevice> cir) {
-        if (physicalDevice.hasDeviceExtension(EXTMeshShader.VK_EXT_MESH_SHADER_EXTENSION_NAME)) {
-            Nvidium.LOGGER.info("Enabling VK_EXT_mesh_shader");
-        } else {
-            Nvidium.LOGGER.info("VK_EXT_mesh_shader not found, disabling Nvidium");
-            Nvidium.IS_COMPATIBLE = false;
+    private static void nvidium$detectEnabledFeatures(FeatureSet enabled, VulkanPhysicalDevice physicalDevice, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<VkDevice> cir) {
+        Nvidium.IS_COMPATIBLE = enabled.contains(MixinVulkanFeatureSets.NVIDIUM_MESH_SHADER);
+        Nvidium.IS_ENABLED = Nvidium.IS_COMPATIBLE;
+        if (!Nvidium.IS_COMPATIBLE) {
+            Nvidium.LOGGER.info("Mesh shader FeatureSet not enabled on this device, disabling Nvidium");
             return;
         }
 
-        for (var feature : NVIDIUM_REQUIRED_FEATURES) {
-            if (isFeatureSupported(physicalDevice.vkPhysicalDevice(), feature)) {
-                Nvidium.LOGGER.info("Enabling feature {}", feature.name());
-            } else {
-                Nvidium.LOGGER.info("Missing feature {}, disabling Nvidium", feature.name());
-                Nvidium.IS_COMPATIBLE = false;
-            }
-        }
+        Nvidium.SUPPORT_VK_KHR_fragment_shader_barycentric = enabled.contains(MixinVulkanFeatureSets.NVIDIUM_BARYCENTRIC);
+        Nvidium.SUPPORT_NV_representative_fragment_test = enabled.contains(MixinVulkanFeatureSets.NVIDIUM_REPRESENTATIVE_FRAGMENT_TEST);
+        Nvidium.LOGGER.info("Enabling Nvidium: VK_EXT_mesh_shader, barycentric={}, representativeFragmentTest={}",
+                Nvidium.SUPPORT_VK_KHR_fragment_shader_barycentric, Nvidium.SUPPORT_NV_representative_fragment_test);
 
-        if (Nvidium.IS_COMPATIBLE) {
-            deviceExtensions.add(EXTMeshShader.VK_EXT_MESH_SHADER_EXTENSION_NAME);
-            vulkanFeatures.addAll(NVIDIUM_REQUIRED_FEATURES);
-            Nvidium.IS_ENABLED = Nvidium.IS_COMPATIBLE;
-        } else {
-            return; // We don't have minimum required extension we stop there and disable
-        }
-
-        if (physicalDevice.hasDeviceExtension(KHRFragmentShaderBarycentric.VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME)) { // TODO EMULATE BARY
-            if (isFeatureSupported(physicalDevice.vkPhysicalDevice(), FRAGMENT_SHADER_BARYCENTRIC_FEATURE)) {
-                Nvidium.LOGGER.info("Enabling VK_KHR_fragment_shader_barycentric");
-                deviceExtensions.add(KHRFragmentShaderBarycentric.VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME);
-                vulkanFeatures.add(FRAGMENT_SHADER_BARYCENTRIC_FEATURE);
-                Nvidium.SUPPORT_VK_KHR_fragment_shader_barycentric = true;
-            } else {
-                Nvidium.LOGGER.info("No VK_KHR_fragment_shader_barycentric feature, using compatibility mode");
-            }
-        } else {
-            Nvidium.LOGGER.info("No VK_KHR_fragment_shader_barycentric device extension, using compatibility mode");
-        }
-
-        if (physicalDevice.hasDeviceExtension(NVRepresentativeFragmentTest.VK_NV_REPRESENTATIVE_FRAGMENT_TEST_EXTENSION_NAME)) {
-            if (isFeatureSupported(physicalDevice.vkPhysicalDevice(), REPRESENTATIVE_FRAGMENT_TEST_FEATURE)) {
-                Nvidium.LOGGER.info("Enabling VK_NV_representative_fragment_test");
-                deviceExtensions.add(NVRepresentativeFragmentTest.VK_NV_REPRESENTATIVE_FRAGMENT_TEST_EXTENSION_NAME);
-                vulkanFeatures.add(REPRESENTATIVE_FRAGMENT_TEST_FEATURE);
-                Nvidium.SUPPORT_NV_representative_fragment_test = true;
-            } else {
-                Nvidium.LOGGER.info("No VK_NV_representative_fragment_test feature, using compatibility mode");
-            }
-        } else {
-            Nvidium.LOGGER.info("No VK_NV_representative_fragment_test device extension, using compatibility mode");
-        }
-
-        initSubgroupSize(physicalDevice.vkPhysicalDevice());
-        Nvidium.config.automatic_memory = false; // TODO REMOVE BUT SHOULD PREVENT CRASH SINCE NOT SUPPORTED YET
+        Nvidium.SUBGROUP_SIZE = physicalDevice.vkPhysicalDeviceVulkan11Properties().subgroupSize();
+        Nvidium.LOGGER.info("SubGroup size is {}", Nvidium.SUBGROUP_SIZE);
+        Nvidium.config.automatic_memory = false; // TODO not supported on the Vulkan backend yet
     }
 
     @ModifyArg(method = "createVma(Lorg/lwjgl/vulkan/VkDevice;)J", at = @At(value = "INVOKE", target = "Lorg/lwjgl/util/vma/Vma;vmaCreateAllocator(Lorg/lwjgl/util/vma/VmaAllocatorCreateInfo;Lorg/lwjgl/PointerBuffer;)I"), index = 0)
     private static VmaAllocatorCreateInfo nvidium$enableVMABDA(VmaAllocatorCreateInfo createInfo) {
-        Nvidium.LOGGER.info("Enabling Vulkan VMA BDA");
-        createInfo.flags(createInfo.flags() | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT);
-
-        return createInfo;
-    }
-
-    @Unique
-    private static void initSubgroupSize(VkPhysicalDevice physicalDevice) {
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            VkPhysicalDeviceSubgroupProperties subgroupProperties = VkPhysicalDeviceSubgroupProperties.calloc(stack).sType$Default();
-
-            VkPhysicalDeviceProperties2 properties = VkPhysicalDeviceProperties2.calloc(stack)
-                    .sType$Default()
-                    .pNext(subgroupProperties);
-
-            vkGetPhysicalDeviceProperties2(physicalDevice, properties);
-
-            Nvidium.SUBGROUP_SIZE = subgroupProperties.subgroupSize();
-            Nvidium.LOGGER.info("SubGroup size is {}", Nvidium.SUBGROUP_SIZE);
+        if (Nvidium.IS_ENABLED) {
+            Nvidium.LOGGER.info("Enabling Vulkan VMA buffer device address");
+            createInfo.flags(createInfo.flags() | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT);
         }
-    }
-
-    @Shadow
-    private static boolean isFeatureSupported(final VkPhysicalDevice vkPhysicalDevice, final VulkanFeature feature) {
-        return false;
+        return createInfo;
     }
 }

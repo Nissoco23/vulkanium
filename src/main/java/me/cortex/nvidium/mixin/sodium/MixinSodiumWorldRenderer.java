@@ -1,6 +1,6 @@
 package me.cortex.nvidium.mixin.sodium;
 
-import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuSampler;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.NvidiumWorldRenderer;
 import me.cortex.nvidium.sodiumCompat.INvidiumWorldRendererGetter;
@@ -11,7 +11,9 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRend
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
+import com.mojang.renderpearl.api.commands.RenderPass;
 import net.minecraft.client.Camera;
+import net.minecraft.client.renderer.oit.OitStage;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,7 +44,7 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
     }
 
     @Inject(method = "renderLayer", at = @At(value = "HEAD"), cancellable = true)
-    public void renderLayer(ChunkRenderMatrices matrices, TerrainRenderPass pass, double x, double y, double z, FogParameters fogParameters, GpuSampler terrainSampler, CallbackInfo ci) {
+    public void renderLayer(ChunkRenderMatrices matrices, TerrainRenderPass pass, double x, double y, double z, FogParameters fogParameters, GpuSampler terrainSampler, RenderPass renderPass, OitStage stage, CallbackInfo ci) {
         if (Nvidium.IS_ENABLED) {
             ci.cancel();
 
@@ -50,6 +52,10 @@ public abstract class MixinSodiumWorldRenderer implements INvidiumWorldRendererG
             if (pass == DefaultTerrainRenderPasses.SOLID) {
                 this.getRenderer().renderFrame(pass, viewport, fogParameters, matrices, x, y, z, terrainSampler);
             } else if (pass == DefaultTerrainRenderPasses.TRANSLUCENT) {
+                // TODO 26.3 order independent transparency (stage != null) is not implemented on the Vulkan path yet,
+                //  translucent terrain is only drawn by the traditional blended pass.
+                if (stage != null)
+                    return;
                 this.getRenderer().renderTranslucent(pass, terrainSampler);
             }
         }

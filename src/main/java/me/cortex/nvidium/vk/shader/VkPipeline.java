@@ -1,10 +1,10 @@
 package me.cortex.nvidium.vk.shader;
 
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vulkan.VulkanConst;
-import com.mojang.blaze3d.vulkan.VulkanDevice;
+import com.mojang.renderpearl.backend.vulkan.VulkanConst;
+import com.mojang.renderpearl.backend.vulkan.VulkanDevice;
 import me.cortex.nvidium.Nvidium;
 import me.cortex.nvidium.mixin.minecraft.GpuDeviceAccessor;
 import me.cortex.nvidium.sodiumCompat.ShaderLoader;

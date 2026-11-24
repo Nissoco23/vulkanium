@@ -1,8 +1,8 @@
 package me.cortex.nvidium.renderers;
 
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.systems.CommandEncoder;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
 import me.cortex.nvidium.vk.shader.VkPipeline;
 import me.cortex.nvidium.vk.shader.VkPipelineLayout;
 import me.cortex.nvidium.vk.shader.VkShaderType;

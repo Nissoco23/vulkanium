@@ -8,7 +8,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#moj_import <nvidium:occlusion/scene.glsl>
+#import <nvidium:occlusion/scene.glsl>
 layout(early_fragment_tests) in;
 
 // WE NEED TO CREATE OUR OWN gl_PrimitiveID other shaderc will set our fragment to OpCapability Geometry https://github.com/KhronosGroup/glslang/issues/4147

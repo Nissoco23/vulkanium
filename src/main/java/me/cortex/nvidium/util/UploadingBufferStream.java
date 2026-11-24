@@ -1,7 +1,7 @@
 package me.cortex.nvidium.util;
 
-import com.mojang.blaze3d.buffers.GpuFence;
-import com.mojang.blaze3d.vulkan.VulkanCommandEncoder;
+import com.mojang.renderpearl.api.commands.GpuFence;
+import com.mojang.renderpearl.backend.vulkan.VulkanCommandEncoder;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import me.cortex.nvidium.vk.VkRenderDevice;
 import me.cortex.nvidium.vk.buffers.VkBuffer;

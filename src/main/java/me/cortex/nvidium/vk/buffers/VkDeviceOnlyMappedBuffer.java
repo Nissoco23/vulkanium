@@ -1,8 +1,8 @@
 package me.cortex.nvidium.vk.buffers;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vulkan.VulkanDevice;
-import com.mojang.blaze3d.vulkan.VulkanUtils;
+import com.mojang.renderpearl.backend.vulkan.VulkanDevice;
+import com.mojang.renderpearl.backend.vulkan.VulkanUtils;
 import me.cortex.nvidium.gl.TrackedObject;
 import me.cortex.nvidium.mixin.minecraft.GpuDeviceAccessor;
 import me.cortex.nvidium.vk.shader.VkPipelineLayout;

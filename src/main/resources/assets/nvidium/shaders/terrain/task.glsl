@@ -8,12 +8,12 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#moj_import <nvidium:occlusion/scene.glsl>
+#import <nvidium:occlusion/scene.glsl>
 
 //This is 1 since each task shader workgroup -> multiple meshlets. its not each globalInvocation (afaik)
 layout(local_size_x=1) in;
 
-#moj_import <nvidium:terrain/task_common2.glsl>
+#import <nvidium:terrain/task_common2.glsl>
 
 void main() {
     uint sectionId = sectionIndices.data[terrainCommandBuffer.data[gl_DrawID].w + gl_WorkGroupID.x].x + terrainCommandBuffer.data[gl_DrawID].w;

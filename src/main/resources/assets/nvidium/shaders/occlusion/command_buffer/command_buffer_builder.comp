@@ -10,7 +10,7 @@
 
 #define SECTIONS_PER_LANE (256 / NVIDIUM_SUBGROUP_SIZE)
 
-#moj_import <nvidium:occlusion/scene.glsl>
+#import <nvidium:occlusion/scene.glsl>
 
 layout(local_size_x = NVIDIUM_SUBGROUP_SIZE) in;
 

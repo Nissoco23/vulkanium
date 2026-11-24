@@ -6,7 +6,7 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-#moj_import <nvidium:occlusion/scene.glsl>
+#import <nvidium:occlusion/scene.glsl>
 layout(early_fragment_tests) in;
 
 layout(location = 3) perprimitiveEXT flat in int PRIMITRASH;

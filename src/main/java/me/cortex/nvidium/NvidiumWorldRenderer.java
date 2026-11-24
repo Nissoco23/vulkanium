@@ -1,6 +1,6 @@
 package me.cortex.nvidium;
 
-import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.renderpearl.api.textures.GpuSampler;
 import me.cortex.nvidium.config.TranslucencySortingLevel;
 import me.cortex.nvidium.managers.SectionManager;
 import me.cortex.nvidium.sodiumCompat.NvidiumCompactChunkVertex;

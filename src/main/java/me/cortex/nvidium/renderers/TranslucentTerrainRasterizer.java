@@ -1,10 +1,10 @@
 package me.cortex.nvidium.renderers;
 
-import com.mojang.blaze3d.GpuFormat;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.pipeline.ColorTargetState;
-import com.mojang.blaze3d.systems.CommandEncoder;
-import com.mojang.blaze3d.textures.GpuSampler;
+import com.mojang.renderpearl.api.GpuFormat;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+import com.mojang.renderpearl.api.commands.CommandEncoder;
+import com.mojang.renderpearl.api.textures.GpuSampler;
 import me.cortex.nvidium.vk.buffers.VkDeviceOnlyMappedBuffer;
 import me.cortex.nvidium.vk.shader.VkPipeline;
 import me.cortex.nvidium.vk.shader.VkPipelineLayout;

@@ -13,17 +13,25 @@
 #endif
 
 layout(set = 0, binding = 1) uniform sampler2D tex_diffuse;
+#ifndef OIT_ALPHA_ONLY
 layout(set = 0, binding = 2) uniform sampler2D tex_light;
+#endif
 
-#moj_import <nvidium:occlusion/scene.glsl>
-#moj_import <nvidium:terrain/vertex_format/vertex_format.glsl>
+#import <nvidium:occlusion/scene.glsl>
+#import <nvidium:terrain/vertex_format/vertex_format.glsl>
+#ifdef OIT
+#import <minecraft:include/oit.glsl>
+#endif
 
 #ifdef RENDER_FOG
 #define USE_FOG
-#moj_import <sodium:include/fog.glsl>
+#import <sodium:include/fog.glsl>
 #endif
 
-layout(location = 0) out vec4 colour;
+#ifndef OIT_ALPHA_ONLY
+layout(location = 0) out vec4 fragColor;
+#endif
+
 #ifndef USE_NV_FRAGMENT_SHADER_BARYCENTRIC
 layout(location = 1) in Interpolants {
     #ifdef RENDER_FOG
@@ -35,24 +43,22 @@ layout(location = 1) in Interpolants {
 };
 #endif
 
-// FIX PREPROCESSOR DOING GARBAGE WITH LINES
-#line 39 0
 layout(location = 10) perprimitiveEXT flat in int PRIMITRASH;
 
 Vertex V0;
 Vertex Vp;
 Vertex V2;
 #ifdef USE_NV_FRAGMENT_SHADER_BARYCENTRIC
-void computeOutputColour(inout vec3 colour) {
+void computeOutputColour(inout vec3 color) {
     vec3 multiplier = gl_BaryCoordEXT.x*computeMultiplier(V0) + gl_BaryCoordEXT.y*computeMultiplier(Vp) + gl_BaryCoordEXT.z*computeMultiplier(V2);
-    colour *= multiplier;
+    color *= multiplier;
 }
 #endif
 
 #ifdef RENDER_FOG
 //2 ways to do it, either use an interpolation, or screenspace reversal, screenspace reversal is better when many many vertices
 // however interpolation increases ISBE
-void applyFog(inout vec4 colour) {
+void applyFog(inout vec4 fragColor, vec4 fogColor) {
 
 #ifdef USE_NV_FRAGMENT_SHADER_BARYCENTRIC
     //Reverse the transformation and compute the original position
@@ -60,7 +66,7 @@ void applyFog(inout vec4 colour) {
     vec3 pos = clip.xyz/clip.w;
     vec2 v_FragDistance = getFragDistance(pos);
 #endif
-    colour = _linearFog(colour, v_FragDistance, fogColour, environmentFog, renderFog, 1.0);
+    fragColor = _linearFog(fragColor, v_FragDistance, fogColor, environmentFog, renderFog, 1.0);
 }
 #endif
 
@@ -82,7 +88,7 @@ vec4 sampleNearest(vec2 uv, vec2 du, vec2 dv, vec2 texelScreenSize) {
 vec4 sampleRGSS(vec2 uv, vec2 du, vec2 dv, vec2 texelScreenSize) {
     float maxTexelSize = max(texelScreenSize.x, texelScreenSize.y);
 
-    float minPixelSize = min(texelSize.x, texelSize.y);
+    float minPixelSize = min(float(texelSize.x), float(texelSize.y));
 
     float transitionStart = minPixelSize * 1.0;
     float transitionEnd = minPixelSize * 2.0;
@@ -139,20 +145,34 @@ void main() {
         vec2 dv = dFdy(uv);
     #endif
         vec2 texelScreenSize = sqrt(du * du + dv * dv);
-        colour = useRGSS() ? sampleRGSS(uv, du, dv, texelScreenSize) : sampleNearest(uv, du, dv, texelScreenSize);
-
-    uint alphaCutoff = rawVertexAlphaCutoff(V0);
-    if (colour.a < getVertexAlphaCutoff(alphaCutoff)) {
-        discard;
-    }
+        vec4 color = useRGSS() ? sampleRGSS(uv, du, dv, texelScreenSize) : sampleNearest(uv, du, dv, texelScreenSize);
 
     #ifdef USE_NV_FRAGMENT_SHADER_BARYCENTRIC
-        computeOutputColour(colour.rgb);
+        computeOutputColour(color.rgb);
     #else
-        colour.rgb *= v_colour;
+        color.rgb *= v_colour;
     #endif
 
-    #ifdef RENDER_FOG
-        applyFog(colour);
+    #ifdef ALPHA_CUTOUT
+        if (color.a < ALPHA_CUTOUT) {
+        discard;
+    }
+    #endif
+
+    #ifdef OIT_ALPHA_ONLY
+        executeAlphaOnlyPhase(gl_FragCoord.z, color.a);
+    #else
+        #ifdef OIT_ACCUMULATE
+            color = sampleColorForAccumulation(color);
+            vec4 fogColor = vec4(fogColour.rgb * color.a, fogColour.a);
+        #else
+            vec4 fogColor = fogColour;
+        #endif
+
+        #ifdef RENDER_FOG
+            applyFog(color, fogColor);
+        #endif
+
+        fragColor = color;
     #endif
 }
